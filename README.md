@@ -1,2 +1,3 @@
 # 2D_DE
-Two dimensional diffusion equation solver
+Two Dimensional Diffusion Equation Solver
+This program solves the diffusion equation in two dimensions.

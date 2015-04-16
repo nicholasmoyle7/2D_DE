@@ -1,0 +1,195 @@
+function [A,S]=Super_Matrix_Constructor(a_L,a_R,a_B,a_T,a_C,S_ij)
+%% Description
+
+% This function Super_Matrix_Constructor has 6 input matrices and two
+% output matrices. The input matrices are a_L, the matrix of contributions
+% from the cell to the left on the cell of interest; a_R, the matrix of
+% contributions from the cell to the right on the cell of interest; a_B,
+% the matrix of contributions from the cell on bottom on the cell of
+% interest; a_T, the matrix of contributions from the cell on top on the
+% cell of interest; a_C, the matrix of contributions from the cell of the
+% cell of interest on the cell of interest; and S_ij, the matrix of
+% sources. The output matrices are A, the tri-diagonal matrix made up of
+% matrices of the components of the a_* matrices; and S, the vector which
+% is made up of the rows of S_ij.
+
+%% Initialization
+
+% Initialize parameters for this problem.
+
+m=size(S_ij,1); % Height of matrix S_ij
+
+n=size(S_ij,2); % Length of matrix S_ij
+
+A=cell(n,m); % Create cell array with these dimensions
+
+S=zeros(n*m,1); % Create vector with length m*n
+%%
+
+% Fill in "super" source vector S from source matrix S_ij. The indexing
+% treats the bottom-left corner of the matrix as (0,0) and places rows of
+% S_ij, starting from the bottom, on top of one another in the vector S.
+
+% Define loop index which greatly aids in populating vector.
+
+S_ij_loop_indx=1;
+
+% Start from bottom row and move up in steps of one.
+
+for i=m:-1:1
+    
+    % Populate vector with matrix row.
+    
+    S(S_ij_loop_indx:S_ij_loop_indx+n-1)=S_ij(i,:)';
+    
+    % Increase loop index to next empty vector location.
+    
+    S_ij_loop_indx=S_ij_loop_indx+n;
+    
+end
+%%
+
+% Fill in "super" coefficient matrix A from coefficient matrices a_L, a_R,
+% a_B, a_T, and a_C. This will be accomplished by using the MATLAB data
+% storage method of a cell array. A cell array is a data structure which
+% can be constructed in the form of a matrix but each element of which can
+% also be a matrix. This is convenient for indexing and can easily be
+% converted to the "super" matrix using the built in MATLAB function
+% cell2mat. The cell array will be filled in a tri-diagonal fashion with
+% the diagonal elements themselves containing tri-diagonal matrices. The
+% off-diagonal cell array elements will contain diagonal matrices.
+
+% Define loop indices which greatly aid in populating the matrix
+
+indx_R=1; % Right contribution loop index
+
+indx_L=1; % Left contribution loop index
+
+indx_B=1; % Bottom contribution loop index5
+
+indx_T=1; % Top contribution loop index
+
+indx_C=1; % Center contribution loop index
+
+% Starting from the top-left corner of the cell array and working down and
+% to the right, fill in the tri-diagonal elements of the cell. The first
+% and last rows of the cell array need to be dealt with separately because
+% they do not follow the pattern of the tri-diagonal cell array.
+
+for I=1:n % Cell array vertical index
+    
+    for J=I-1:I+1 % Cell array horizontal index
+        
+        if isequal(I,1) % Check for top row of cell array which cannot have a lower
+            % off-diagonal element
+            
+            if isequal(J,I-1) % Check if reference is outside bounds of cell array
+                
+                % Do nothing here!
+                
+            elseif isequal(J,I) % Check if the first diagonal cell array element
+                
+                A{I,J}=diag(a_C(end-(indx_C-1),:)); % Populate cell with diagonal matrix of row of a_C, starting with the bottom row and working up in increments of one for each time this is called
+                
+                A{I,J}=A{I,J}+diag(a_R(end-(indx_R-1),1:end-1),1); % Add to this matrix on the upper diagonal with the elements of a_R in the bottom row from the leftmost edge and extending to the place before the rightmost edge
+                
+                A{I,J}=A{I,J}+diag(a_L(end-(indx_L-1),2:end),-1); % Add to this matrix on the lower diagonal with the elements of a_L in the bottom row from the place after the leftmost edge and extending to the rightmost edge
+                
+                indx_C=indx_C+1; % Increase the index for the a_C matrix usage by one
+                
+                indx_R=indx_R+1; % Increase the index for the a_R matrix usage by one
+                
+                indx_L=indx_L+1; % Increase the index for the a_L matrix usage by one
+                
+            else % Check if first upper off-diagonal cell array element
+                
+                A{I,J}=diag(a_T(end-(indx_T-1),:)); % Populate cell with diagonal matrix of row of a_T, starting with the bottom row and working up in increments of one for each time this is called
+                
+                indx_T=indx_T+1; % Increase the index for the a_T matrix usage by one
+                
+            end
+            
+        elseif isequal(I,size(A,1)) % Check for bottom row of cell array which cannot have an
+            % upper off-diagonal element
+            
+            if isequal(J,I+1) % Check if reference is outside bounds of cell array
+                
+                % Do nothing here!
+                
+            elseif isequal(J,I) % Check if the last diagonal cell array element
+                
+                A{I,J}=diag(a_C(end-(indx_C-1),:)); % Populate cell with diagonal matrix of row of a_C, starting with the bottom row and working up in increments of one for each time this is called
+                
+                A{I,J}=A{I,J}+diag(a_R(end-(indx_R-1),1:end-1),1); % Add to this matrix on the upper diagonal with the elements of a_R in the bottom row from the leftmost edge and extending to the place before the rightmost edge
+                
+                A{I,J}=A{I,J}+diag(a_L(end-(indx_L-1),2:end),-1); % Add to this matrix on the lower diagonal with the elements of a_L in the bottom row from the place after the leftmost edge and extending to the rightmost edge
+                
+                indx_C=indx_C+1; % Increase the index for the a_C matrix usage by one
+                
+                indx_R=indx_R+1; % Increase the index for the a_R matrix usage by one
+                
+                indx_L=indx_L+1; % Increase the index for the a_L matrix usage by one
+                
+            else % Check if last lower off-diagonal cell array element
+                
+                A{I,J}=diag(a_B(end-indx_B,:)); % Populate with diagonal matrix of row of a_B, starting with the bottom row and working up in increments of one for each time this is called
+                
+                indx_B=indx_B+1; % Increase the index for the a_B matrix usage by one
+                
+            end
+            
+        else % Fill in all other elements in tri-diagonal fashion
+            
+            if isequal(J,I-1) % Check if on bottom off-diagonal cell array element
+                
+                A{I,J}=diag(a_B(end-indx_B,:)); % Populate with diagonal matrix of row of a_B, starting with the second from bottom row and working up in increments of one for each time this is called
+                
+                indx_B=indx_B+1; % Increase the index for the a_B matrix usage by one
+                
+            elseif isequal(J,I+1) % Check if on top off-diagonal cell array element
+                
+                A{I,J}=diag(a_T(end-(indx_T-1),:)); % Populate with diagonal matrix of row of a_T, starting with the bottom row and working up in increments of one for each time this is called
+                
+                indx_T=indx_T+1; % Increase the index for the a_T matrix usage by one
+                
+            else % For diagonal cell array elements
+                
+                A{I,J}=diag(a_C(end-(indx_C-1),:)); % Populate cell with diagonal matrix of row of a_C, starting with the bottom row and working up in increments of one for each time this is called
+                
+                A{I,J}=A{I,J}+diag(a_R(end-(indx_R-1),1:end-1),1); % Add to this matrix on the upper diagonal with the elements of a_R in the bottom row from the leftmost edge and extending to the place before the rightmost edge
+                
+                A{I,J}=A{I,J}+diag(a_L(end-(indx_L-1),2:end),-1); % Add to this matrix on the lower diagonal with the elements of a_L in the bottom row from the place after the leftmost edge and extending to the rightmost edge
+                
+                indx_C=indx_C+1; % Increase the index for the a_C matrix usage by one
+                
+                indx_R=indx_R+1; % Increase the index for the a_R matrix usage by one
+                
+                indx_L=indx_L+1; % Increase the index for the a_L matrix usage by one
+                
+            end
+            
+        end
+        
+    end
+    
+end
+
+% Go through cell array and change empty cells to zero matrices with a size
+% of m x n.
+
+for I=1:n % Cell array vertical index
+    
+    for J=1:m % Cell array horizontal index
+        
+        if isequal(A{I,J},[]) % Check if cell is empty
+            
+            A{I,J}=zeros(m,n); % Populate cell with matrix of zeros
+            
+        end
+        
+    end
+    
+end
+
+A=cell2mat(A); % Change A from a cell array to a matrix using the built-in MATLAB function cell2mat
+end

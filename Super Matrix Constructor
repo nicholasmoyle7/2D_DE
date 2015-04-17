@@ -21,7 +21,7 @@ m=size(S_ij,1); % Height of matrix S_ij
 
 n=size(S_ij,2); % Length of matrix S_ij
 
-A=cell(n,m); % Create cell array with these dimensions
+A=cell(m); % Create cell array with these dimensions
 
 S=zeros(n*m,1); % Create vector with length m*n
 %%
@@ -76,7 +76,7 @@ indx_C=1; % Center contribution loop index
 % and last rows of the cell array need to be dealt with separately because
 % they do not follow the pattern of the tri-diagonal cell array.
 
-for I=1:n % Cell array vertical index
+for I=1:m % Cell array vertical index
     
     for J=I-1:I+1 % Cell array horizontal index
         
@@ -177,13 +177,13 @@ end
 % Go through cell array and change empty cells to zero matrices with a size
 % of m x n.
 
-for I=1:n % Cell array vertical index
+for I=1:m % Cell array vertical index
     
     for J=1:m % Cell array horizontal index
         
         if isequal(A{I,J},[]) % Check if cell is empty
             
-            A{I,J}=zeros(m,n); % Populate cell with matrix of zeros
+            A{I,J}=zeros(n); % Populate cell with matrix of zeros
             
         end
         

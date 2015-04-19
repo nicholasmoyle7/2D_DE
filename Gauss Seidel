@@ -1,0 +1,65 @@
+function X=Gauss_Seidel(A,b)
+%% Description
+
+% This function Gauss_Seidel has two inputs and one output. The inputs are
+% the matrix A and the vector b. The output is the vector X, the iterative
+% solution to the matrix equation A*X=b which converges to within an
+% absolute tolerance of 1E-6.
+
+%% Initializations
+
+% Initialize variables necessary for the soultion method. These include the
+% three matrices D, L, and U. D is a diagonal martix of the diagonal
+% elements of A, L is a lower triangluar matrix of the lower triangular
+% elements of A, and U is an upper triangular matrix of the upper
+% triangular elements of A. Thus, A = L + U + D.
+
+x=ones(size(b)); % Initialize solution vector to all zeros
+
+x_prev=zeros(size(b)); % Initialize "previous" solution vector to something not equal to the initialized solution vector. This is only done to get inside the solver loop.
+
+iter=0; % Initialize iteration counter
+
+tol=1E-6; % Initialize convergence tolerace
+
+D=diag(diag(A)); % Initialize the diagonal matrix D
+
+L=zeros(size(A)); % Initialize the lower triangular matrix L
+
+U=zeros(size(A)); % Initialize the upper triangular matrix U
+
+% Fill in elements of L and U
+
+for i=1:size(A,1) % Start vertical index
+    
+    for j=1:i-1 % Start horizontal index from the first column until the element before the diagonal element of that row
+        
+        L(i,j)=A(i,j); % Fill in the elements of L with the lower triangular elements of A
+        
+    end
+    
+    for j=i+1:size(A,2) % Start horizontal index from the column after the diagonal element to the last element of that row
+        
+        U(i,j)=A(i,j); % Fill in the elements of U with the upper triangular elements of A
+        
+    end
+    
+end
+
+%% Solution
+
+% Begin Gauss Seidel iterative solution method.
+
+while norm(abs(x_prev-x))>tol % Check to see if the absolute difference between the norms of the iteratd solution and the previous iterate is within the tolerance.
+    
+    x_prev=x; % Store the iterated solution up to this point as the previous solution for comparison after the following steps are taken.
+    
+    x=(D+L)\(-U*x_prev+b); % Perform iterative operation
+    
+    iter=iter+1; % Increase the value of the counter by one.
+    
+end
+
+X=x; % Assign value of output vactor X to value of iterative solution vector x
+
+end

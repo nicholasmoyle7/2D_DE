@@ -1,0 +1,225 @@
+function [a_C,a_L,a_R,a_B,a_T,S_ij,x,y]=Parameter_Constructor(m,n,epsilon,delta,D,Sig_a,s,BC_L,BC_R,BC_B,BC_T)
+%% Description
+
+% This function Parameter_Constructor has 11 inputs and 8 outputs. The
+% inputs are m, the number of meshes in the vertical direction; n, the
+% number of meshes in the horizontal direction; epsilon, a vector of length
+% m which represents the vertical spacing of each mesh (i.e. the distance
+% between y_j and y_j-1); delta, a vector of length n which represents the
+% horizontal spacing of each mesh (i.e. the distance between x_i and
+% x_i-1); D, a matrix of size (m,n) which represents the spatial
+% distribution of the diffusion length; Sig_a, a matrix of size (m,n) which
+% represents the spatial distribution of the cross section for absorption;
+% s, a matrix of size (m,n) which represents the spatial distribution of
+% the neutron source; BC_L, a string which denotes either vacuum or
+% reflecting boundary condition along the left edge of the solution space;
+% BC_R, a string which denotes either vacuum or reflecting boundary
+% condition along the right edge of the solution space; BC_B, a string
+% which denotes either vacuum or reflecting boundary condition along the
+% bottom edge of the solution space; and BC_T, a string which denotes
+% either vacuum or reflecting boundary condition along the top edge of the
+% solution space. The outputs are a_L, a matrix of size (m+1,n+1) of
+% contributions from the cell to the left on the cell of interest; a_R, a
+% matrix of size (m+1,n+1) of contributions from the cell to the right on
+% the cell of interest; a_B, a matrix of size (m+1,n+1) of contributions
+% from the cell on bottom on the cell of interest; a_T, a matrix of size
+% (m+1,n+1) of contributions from the cell on top on the cell of interest;
+% a_C, a matrix of size (m+1,n+1) of contributions from the cell of the
+% cell of interest on the cell of interest; and S_ij, a matrix of size
+% (m+1,n+1) of sources.
+
+% PROVIDE BETTER DESCRIPTION OF WHAT FUNCTION DOES HERE!!!!
+
+%% Initialization
+
+% Initialize parameters for this function.
+
+S_ij=zeros(m+1,n+1); % Initialize the matrix S_ij
+
+a_L=zeros(m+1,n+1); % Initialize the martix a_L
+
+a_R=zeros(m+1,n+1); % Initialize the martix a_R
+
+a_B=zeros(m+1,n+1); % Initialize the martix a_B
+
+a_T=zeros(m+1,n+1); % Initialize the martix a_T
+
+a_C=zeros(m+1,n+1); % Initialize the martix a_C
+
+V=zeros(m,n); % Initialize the intermediate matrix V which is necessary to compute S_ij and Sig_a_ij
+
+Sig_a_ij=zeros(m+1,n+1); % Initialize the intermediate matrix Sig_a_ij which is necessary to compute a_C
+
+%%
+
+% Construct the vectors x and y using the information in delta and epsilon
+% respectively. These vectors will be normalized to start at 0 and end at
+% 1.
+
+delta=delta/sum(delta); % Normalize delta
+
+x=[0 cumsum(delta)]; % Using the built in MATLAB function cumsum, take the cumulative sum of the vector delta such that the next entry in the vector x is the sum of all the previous entries of the vector delta, and add zero to the beginning of x
+
+epsilon=epsilon/sum(epsilon); % Normalize epsilon
+
+y=[0 cumsum(epsilon)]; % Using the built in MATLAB function cumsum, take the cumulative sum of the vector epsilon such that the next entry in the vector y is the sum of all the previous entries of the vector epsilon, and add zero to the beginning of y
+%%
+
+% Begin constructing the V matrix for use later in constructing S_ij and
+% Sig_a_ij by filling in rows starting from the bottom and working up in
+% increments of one.
+
+for i=1:m % Start vertical index
+    
+    for j=1:n % Start horizontal index
+        
+        V(m-i+1,j)=1/4*delta(j)*epsilon(i); % Fill in elements of V
+        
+    end
+    
+    
+end
+%%
+
+% Construct the matrices a_* (* = C, R, L, B, or T) and S_ij from the
+% matrices S, V, Sig_a, and Sig_a_ij.
+
+for i=1:n+1 % Start horizontal index
+    
+    for j=1:m+1 % Start vertical index
+        
+        if isequal(i,1) || isequal(i,n+1) || isequal(j,1) || isequal(j,m+1)
+            
+            % Do nothing to the boundary values. Will be taken care of in
+            % the function Boundary_Condition_Constructor.
+            
+        else % Only change interior values
+            
+            Sig_a_ij(m+2-j,i)=Sig_a(m+2-j,i-1)*V(m+2-j,i-1)+... % Fill in elements of Sig_a_ij besed on the adjacent four cells and theis values of Sig_a and V
+                Sig_a(m+1-j,i-1)*V(m+1-j,i-1)+Sig_a(m+2-j,i)*V(m+2-j,i)+...
+                Sig_a(m+1-j,i)*V(m+1-j,i);
+            
+            S_ij(m+2-j,i)=s(m+2-j,i-1)*V(m+2-j,i-1)+... % Fill in elements of Sig_a_ij based on the adjacent four cells and theis values of Sig_a and V
+                s(m+1-j,i-1)*V(m+1-j,i-1)+s(m+2-j,i)*V(m+2-j,i)+...
+                s(m+1-j,i)*V(m+1-j,i);
+            
+            a_L(m+2-j,i)=-(D(m-j+2,i-1)*epsilon(j-1)+D(m-j+1,i-1)*... % Fill in elements of a_L based on the contribution to the flux of the two meshes to the left of the mesh of interest
+                epsilon(j))/(2*delta(i-1));
+            
+            a_R(m+2-j,i)=-(D(m-j+2,i)*epsilon(j-1)+D(m-j+1,i)*... % Fill in elements of a_R based on the contribution to the flux of the two meshes to the right of the mesh of interest
+                epsilon(j))/(2*delta(i));
+            
+            a_B(m+2-j,i)=-(D(m-j+2,i-1)*delta(i-1)+D(m-j+2,i)*... % Fill in elements of a_B based on the contribution to the flux of the two meshes below the mesh of interest
+                delta(i))/(2*epsilon(j-1));
+            
+            a_T(m+2-j,i)=-(D(m-j+1,i-1)*delta(i-1)+D(m-j+1,i)*... % Fill in elements of a_T based on the contribution to the flux of the two meshes on top of the mesh of interest
+                delta(i))/(2*epsilon(j));
+            
+            a_C(m+2-j,i)=Sig_a_ij(m+2-j,i)-(a_L(m+2-j,i)+a_R(m+2-j,i)+... % Fill in elements of a_C based on the contribution to the flux of the four meshes to every side of the mesh of interest
+                a_B(m+2-j,i)+a_T(m+2-j,i));
+            
+        end
+        
+    end
+    
+end
+%% Vacuum Boundary Conditions
+
+% Apply vacuum boundary conditions to the specified boundaries based on the
+% strings BC_*. This consists of setting the corresponding edge of a_C to
+% ones, the corresponding edge of all of the other a_* matrices to zero,
+% and the corresponding edge of S_ij to the desired flux value which is
+% zero in the case of a vacuum boundary condition.
+
+% Apply to left egde
+
+if strcmp(BC_L,'vacuum') % Check if left boundary condition is vacuum
+    
+    a_C(1:end-1,1)=ones(size(a_C,1)-1,1); % Set left edge of a_C to ones to ensure that the desired value of flux is obtained in the final solution.
+    
+    % Since the left edges of a_* (* = R, L, T, B) are already zero by
+    % construction, nothing needs to be done to them.
+    
+    % Similarly, the left edge of S_ij is already zero by construction, so
+    % nothing needs to be done to it.
+    
+end
+
+% Apply to right egde
+
+if strcmp(BC_R,'vacuum') % Check if right boundary condition is vacuum
+    
+    a_C(2:end,end)=ones(size(a_C,1)-1,1); % Set right edge of a_C to ones to ensure that the desired value of flux is obtained in the final solution.
+    
+    % Since the right edges of a_* (* = R, L, T, B) are already zero by
+    % construction, nothing needs to be done to them.
+    
+    % Similarly, the right edge of S_ij is already zero by construction, so
+    % nothing needs to be done to it.
+    
+end
+
+% Apply to bottom egde
+
+if strcmp(BC_B,'vacuum') % Check if bottom boundary condition is vacuum
+    
+    a_C(end,1:end-1)=ones(1,size(a_C,1)-1); % Set bottom edge of a_C to ones to ensure that the desired value of flux is obtained in the final solution.
+    
+    % Since the bottom edges of a_* (* = R, L, T, B) are already zero by
+    % construction, nothing needs to be done to them.
+    
+    % Similarly, the bottom edge of S_ij is already zero by construction,
+    % so nothing needs to be done to it.
+    
+end
+
+% Apply to top egde
+
+if strcmp(BC_T,'vacuum') % Check if top boundary condition is vacuum
+    
+    a_C(1,2:end)=ones(1,size(a_C)-1,1); % Set top edge of a_C to ones to ensure that the desired value of flux is obtained in the final solution.
+    
+    % Since the top edges of a_* (* = R, L, T, B) are already zero by
+    % construction, nothing needs to be done to them.
+    
+    % Similarly, the top edge of S_ij is already zero by construction, so
+    % nothing needs to be done to it.
+    
+end
+
+%% Reflecting Boundary Conditions
+
+% Apply reflecting boundary conditions to the specified boundaries based on
+% the strings BC_*.
+
+% Apply to left edge
+
+if strcmp(BC_L,'reflecting')
+    
+    
+end
+
+% Apply to right edge
+
+if strcmp(BC_R,'reflecting')
+    
+    
+end
+
+% Apply to bottom edge
+
+if strcmp(BC_B,'reflecting')
+    
+    
+end
+
+
+% Apply to top edge
+
+if strcmp(BC_T,'reflecting')
+    
+    
+end
+
+
+end

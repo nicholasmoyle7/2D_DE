@@ -1,0 +1,29 @@
+function phi=Super_Vector_Deconstructor(Phi,n,m)
+%% Description
+
+% This function Super_Vector_Deconstructor has three inputs; Phi, n, and m;
+% and one output, phi. The input Phi in a vector of size (n*m,1) and n and
+% m are integers. The output phi is a matrix with a size of (m,n). The
+% function takes elements of the vector Phi and maps them to rows of the
+% matrix phi. That is, n elements at a time are taken from the vector Phi
+% and placed as the "m"th row of the matrix phi, starting from the bottom
+% and filling up to the forst row.
+
+
+%% Initialization
+
+% Initialize variables necessary for the operation of the function.
+
+phi=zeros(m+1,n+1); % Initialize the phi matrix as zeros of size (m,n)
+
+Phi_indx=1; % Initialize the Phi index counter which greatly aids in transferring the elements to the matrix phi
+
+for i=m+1:-1:1 % Start an index of the rows of phi, starting from the bottom and incrementing by one to the top
+    
+    phi(i,:)=Phi(Phi_indx:Phi_indx+n); % Assign the ith row of phi to be the values of the vector Phi in the ith group of n values
+    
+    Phi_indx=Phi_indx+n+1; % Increas the value of the Phi index by one
+    
+end
+
+end
